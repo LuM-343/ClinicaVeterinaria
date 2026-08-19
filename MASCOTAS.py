@@ -46,9 +46,14 @@ def registrar(estado="Activo"):
 
 
 def mostrar_mascotas():
-    print("\n=== MASCOTAS REGISTRADAS")
+    print("\n=== MASCOTAS REGISTRADAS ===")
     with open("MASCOTAS.json", "r") as registro:
         mascotas = json.load(registro)
 
-    for clave, valor in mascotas:
-        print()
+    for mascota in mascotas:
+        if mascota['estado_mascota'] == 'Activo':
+            print(f"\n--- {mascota['codigo_mascota']}: {mascota['nombre_mascota']} ---")
+            print(f"- Especie: {mascota['especie_mascota']}")
+            print(f"- Raza: {mascota['raza_mascota']}")
+            print(f"- Fecha de nacimiento: {mascota['fecha_nacimiento_mascota']}")
+            print(f"- Dueño: {mascota['dueño']} - Teléfono: {mascota['telefono_dueño']}")
