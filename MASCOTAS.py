@@ -2,7 +2,7 @@ import os
 import json
 
 # Registro de mascotas en .json
-def registrar(estado="Activo"):
+def registrar_mascota(estado="Activo"):
     print("\n=== REGISTRO DE MASCOTA ===")
     # Ingreso de datos de mascota
     codigo_mascota = input("- Código: ")
@@ -31,39 +31,37 @@ def registrar(estado="Activo"):
         "estado_mascota": estado_mascota
     }
 
+        # Se intenta leer el archivo existente; si no existe o está vacío/corrupto, se empieza una lista nueva
     try:
-        with open("MASCOTAS.json", "r") as registro:
+        with open("MASCOTAS.json", "r", encoding="utf-8") as registro:
             mascotas = json.load(registro)
-
-        mascotas.append(mascota)
-
-        with open("MASCOTAS.json", "w") as registro:
-            json.dump(mascotas, registro, indent=4, ensure_ascii=False)
-
     except (FileNotFoundError, json.JSONDecodeError):
         mascotas = []
-        mascotas.append(mascota)
-
-        with open("MASCOTAS.json", "w") as registro:
-            json.dump(mascotas, registro, indent=4, ensure_ascii=False)
+ 
+    mascotas.append(mascota)
+ 
+    with open("MASCOTAS.json", "w", encoding="utf-8") as registro:
+        json.dump(mascotas, registro, indent=4, ensure_ascii=False)
+ 
+    print(f"\n>> Mascota '{nombre_mascota}' registrada correctamente.")
 
 # Muestra de registro de mascotas
 def mostrar_mascotas():
     print("\n=== MASCOTAS REGISTRADAS ===")
 
     try:
-        with open("MASCOTAS.json", "r") as registro: # Lectura del archivo .json para imprimir registro
+        with open("MASCOTAS.json", "r", encoding="utf-8") as registro: # Lectura del archivo .json para imprimir registro
             mascotas = json.load(registro)
-    except FileNotFoundError:
-        print("\n>> ARCHIVO VACÍO.")
 
-    for mascota in mascotas:
-        if mascota['estado_mascota'] == 'Activo':
+        for mascota in mascotas:
             print(f"\n--- {mascota['codigo_mascota']}: {mascota['nombre_mascota']} ---")
             print(f"- Especie: {mascota['especie_mascota']}")
             print(f"- Raza: {mascota['raza_mascota']}")
             print(f"- Fecha de nacimiento: {mascota['fecha_nacimiento_mascota']}")
             print(f"- Dueño: {mascota['dueño']} - Teléfono: {mascota['telefono_dueño']}")
+
+    except (FileNotFoundError, json.JSONDecodeError):
+        print("\n>> ARCHIVO VACÍO.")
 
 # Búsqueda de mascotas por código
 def busqueda_mascota():
@@ -74,7 +72,7 @@ def busqueda_mascota():
 
     # Manejo de error si no existe el archivo .json antes de buscar
     try:
-        with open("MASCOTAS.json", "r") as registro: # Lectura del archivo .json para buscar mascota
+        with open("MASCOTAS.json", "r", encoding="utf-8") as registro: # Lectura del archivo .json para buscar mascota
             mascotas = json.load(registro)
 
         for mascota in mascotas:
@@ -92,5 +90,5 @@ def busqueda_mascota():
             print("\n>> MASCOTA NO ENCONTRADA.")
                 
 
-    except FileNotFoundError:
+    except (FileNotFoundError, json.JSONDecodeError):
         print("\n>> ARCHIVO VACÍO.")
