@@ -3,8 +3,11 @@ import csv
 #agregarVacuna(codigo): Agrega una vacuna al archivo CSV correspondiente al código del animal.
 #verVacunas(codigo): Muestra todas las vacunas registradas para el código del animal
 
+import os
+
 columnas=["Vacuna", "Aplicacion", "Proxima Dosis", "Veterinario"]
 def agregarVacuna(codigo):
+    os.makedirs(codigo, exist_ok=True)  # por si la carpeta no existiera aún
     try:
         with open(f"{codigo}/vacuna_{codigo}.csv", 'r', encoding='utf-8') as archivo:
             reader = csv.reader(archivo)
@@ -24,9 +27,11 @@ def agregarVacuna(codigo):
         writer = csv.writer(archivo)
         writer.writerow([vacuna, fecha_aplicacion, proxima_dosis, veterinario])
 
+    print(f"\n>> Vacuna '{vacuna}' registrada correctamente.")
+
 def verVacunas(codigo):
     try:
-        with open(f"{codigo}/vacuna_{codigo}.csv", 'r') as archivo:
+        with open(f"{codigo}/vacuna_{codigo}.csv", 'r', encoding='utf-8') as archivo:
             reader = csv.reader(archivo)
             vacunas = list(reader)
             if len(vacunas) <= 1:
