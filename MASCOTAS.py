@@ -6,6 +6,18 @@ def registrar_mascota(estado="Activo"):
     print("\n=== REGISTRO DE MASCOTA ===")
     # Ingreso de datos de mascota
     codigo_mascota = input("- Código: ")
+
+    # Verificar que el código no esté ya registrado
+    try:
+        with open("MASCOTAS.json", "r", encoding="utf-8") as registro:
+            mascotas_existentes = json.load(registro)
+    except (FileNotFoundError, json.JSONDecodeError):
+        mascotas_existentes = []
+
+    if any(m['codigo_mascota'] == codigo_mascota for m in mascotas_existentes):
+        print(f"\n>> YA EXISTE LA MASCOTA CON CÓDIGO '{codigo_mascota}'.")
+        return
+
     nombre_mascota = input("- Nombre: ")
     especie_mascota = input("- Especie: ")
     raza_mascota = input("- Raza: ")
