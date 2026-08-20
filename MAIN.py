@@ -1,6 +1,6 @@
 import MASCOTAS
-import vacunas
-import Documentos
+import VACUNAS
+import DOCUMENTOS
 
 while True:
     print('\n======== CLÍNICA VETERNIARIA "El Chucho Feliz" ========')
