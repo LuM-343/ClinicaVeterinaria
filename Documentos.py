@@ -1,110 +1,118 @@
+#Asociar y recuperar archivos (fotos, PDFs, resultados) de una mascota.
+#FUNCIONES
+#asociar_documento(): Copia un archivo externo a la carpeta de la mascota y lo registra en su índice.
+#ver_documentos(): Muestra los documentos asociados a una mascota.
+#recuperar_documento(): Copia un documento ya asociado hacia otra ubicación, sin alterar el original.
 import json
 import shutil
 import time
 from pathlib import Path
 
-BASE_DIRECTORIO = Path(".")
-ARCHIVO_BD = BASE_DIRECTORIO / "base_de_datos.csv"
+MASCOTAS_FILE = "MASCOTAS.json"
 
 
-def cargar_datos():
-    if ARCHIVO_BD.exists():
-        with open(ARCHIVO_BD, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return []
-
-
-def guardar_datos(base_de_datos):
-    BASE_DIRECTORIO.mkdir(exist_ok=True)
-    with open(ARCHIVO_BD, "w", encoding="utf-8") as f:
-        json.dump(base_de_datos, f, indent=4)
-
-def asociar_documento(base_de_datos, base_directorio=BASE_DIRECTORIO):
-    print("\nASOCIAR DOCUMENTO A MASCOTA")
-    if not base_de_datos:
-        print("No hay mascotas registradas. Registre una mascota primero.")
-        return
-
-    codigo_mascota = input("Ingrese el código de la mascota: ").strip().upper()
-
-    mascota_encontrada = None
-    for mascota in base_de_datos:
-        if mascota.get("Codigo") == codigo_mascota:
-            mascota_encontrada = mascota
-            break
-
-    if not mascota_encontrada:
-        print(f"Error: No se encontró mascota con el código '{codigo_mascota}'.")
-        return
-
-    ruta_original_str = input("Ingrese la ruta completa del archivo a asociar (ej: C:\\Users\\docs\\foto.jpg): ").strip()
-    ruta_original = Path(ruta_original_str)
-
-    if not ruta_original.is_file():
-        print(f"Error: El archivo no existe o la ruta no es válida: '{ruta_original}'")
-        return
-
-    descripcion = input("Ingrese una descripción para el documento (ej: Radiografía de cadera): ").strip()
-
-    _copiar_y_registrar_documento(mascota_encontrada, ruta_original, descripcion, base_directorio)
-
-
-def _copiar_y_registrar_documento(mascota, ruta_origen, descripcion, base_directorio):
-    carpeta_documentos = base_directorio / mascota["Codigo"] / "documentos"
-    carpeta_documentos.mkdir(exist_ok=True)
-
-    nombre_original = ruta_origen.name
-    timestamp = int(time.time())
-    nombre_seguro = f"{mascota['Codigo']}_{timestamp}_{nombre_original}"
-    ruta_destino = carpeta_documentos / nombre_seguro
-
+def _cargar_mascotas():
     try:
-        shutil.copy(ruta_origen, ruta_destino)
-
-        documento_info = {
-            "nombre": nombre_original,
-            "ruta": str(ruta_destino.resolve()),
-            "descripcion": descripcion
-        }
-        mascota["Documentos"].append(documento_info)
-        print(f"-> Documento '{nombre_original}' asociado exitosamente.")
-        return True
-    except Exception as e:
-        print(f"Ocurrió un error al copiar el archivo '{ruta_origen}': {e}")
-        return False
+        with open(MASCOTAS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
 
 
-def sincronizar_documentos_mascota(base_de_datos, base_directorio=BASE_DIRECTORIO):
-    print("\nSINCRONIZAR DOCUMENTOS DESDE CARPETA EXTERNA")
-    if not base_de_datos:
-        print("No hay mascotas registradas.")
-        return
+def _buscar_mascota(codigo_mascota):
+    for m in _cargar_mascotas():
+        if m["codigo_mascota"] == codigo_mascota:
+            return m
+    return None
 
-    codigo_mascota = input("Ingrese el código de la mascota: ").strip().upper()
-    mascota = next((m for m in base_de_datos if m.get("Codigo") == codigo_mascota), None)
 
+def _ruta_indice(codigo_mascota):
+    return Path(codigo_mascota) / "documentos" / f"documentos_{codigo_mascota}.json"
+
+
+def _cargar_indice(codigo_mascota):
+    try:
+        with open(_ruta_indice(codigo_mascota), "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
+
+
+def _guardar_indice(codigo_mascota, indice):
+    carpeta = Path(codigo_mascota) / "documentos"
+    carpeta.mkdir(parents=True, exist_ok=True)
+    with open(_ruta_indice(codigo_mascota), "w", encoding="utf-8") as f:
+        json.dump(indice, f, indent=4, ensure_ascii=False)
+
+
+def asociar_documento():
+    print("\n=== ASOCIAR DOCUMENTO A MASCOTA ===")
+    codigo_mascota = input("Código de la mascota: ").strip()
+    mascota = _buscar_mascota(codigo_mascota)
     if not mascota:
-        print(f"Error: No se encontró mascota con el código '{codigo_mascota}'.")
+        print(f"\n>> No se encontró mascota con el código '{codigo_mascota}'.")
         return
 
-    ruta_externa_str = input("Ingrese la ruta de la carpeta a sincronizar (donde tus compañeros dejan los archivos): ").strip()
-    ruta_externa = Path(ruta_externa_str)
-
-    if not ruta_externa.is_dir():
-        print(f"Error: La ruta proporcionada no es una carpeta válida: '{ruta_externa}'")
+    ruta_origen = Path(input("Ruta completa del archivo a asociar: ").strip())
+    if not ruta_origen.is_file():
+        print(f"\n>> El archivo no existe o la ruta no es válida: '{ruta_origen}'")
         return
 
-    print(f"Buscando nuevos archivos para '{mascota['Nombre']}' en '{ruta_externa}'...")
-    archivos_asociados = 0
-    for archivo_externo in ruta_externa.iterdir():
-        if archivo_externo.is_file():
-            respuesta = input(f"  > ¿Asociar el archivo '{archivo_externo.name}'? (s/n): ").strip().lower()
-            if respuesta == 's':
-                descripcion = input(f"    - Ingrese una descripción para '{archivo_externo.name}': ").strip()
-                if _copiar_y_registrar_documento(mascota, archivo_externo, descripcion, base_directorio):
-                    archivos_asociados += 1
+    descripcion = input("Descripción del documento (ej: Radiografía de cadera): ").strip()
 
-    if archivos_asociados > 0:
-        print(f"\nSincronización completa. Se asociaron {archivos_asociados} nuevo(s) documento(s).")
-    else:
-        print("\nNo se asociaron nuevos documentos.")
+    carpeta_documentos = Path(codigo_mascota) / "documentos"
+    carpeta_documentos.mkdir(parents=True, exist_ok=True)
+
+    # nombre único para no pisar archivos con el mismo nombre
+    nombre_destino = f"{int(time.time())}_{ruta_origen.name}"
+    ruta_destino = carpeta_documentos / nombre_destino
+
+    shutil.copy2(ruta_origen, ruta_destino)  # copy2 preserva fecha/metadata, no altera el original
+
+    indice = _cargar_indice(codigo_mascota)
+    indice.append({
+        "nombre_archivo": nombre_destino,
+        "nombre_original": ruta_origen.name,
+        "descripcion": descripcion,
+        "fecha_asociado": time.strftime("%d-%m-%Y"),
+    })
+    _guardar_indice(codigo_mascota, indice)
+
+    print(f"\n>> Documento '{ruta_origen.name}' asociado correctamente a {mascota['nombre_mascota']}.")
+
+
+def ver_documentos():
+    print("\n=== DOCUMENTOS DE UNA MASCOTA ===")
+    codigo_mascota = input("Código de la mascota: ").strip()
+    indice = _cargar_indice(codigo_mascota)
+    if not indice:
+        print("\n>> No hay documentos asociados a esta mascota.")
+        return
+
+    print(f"\n--- Documentos de {codigo_mascota} ---")
+    for i, doc in enumerate(indice, start=1):
+        print(f"{i}. {doc['nombre_original']} — {doc['descripcion']} ({doc['fecha_asociado']})")
+
+
+def recuperar_documento():
+    print("\n=== RECUPERAR / COPIAR DOCUMENTO ===")
+    codigo_mascota = input("Código de la mascota: ").strip()
+    indice = _cargar_indice(codigo_mascota)
+    if not indice:
+        print("\n>> No hay documentos asociados a esta mascota.")
+        return
+
+    for i, doc in enumerate(indice, start=1):
+        print(f"{i}. {doc['nombre_original']} — {doc['descripcion']}")
+
+    seleccion = input("Número del documento a recuperar: ").strip()
+    try:
+        doc = indice[int(seleccion) - 1]
+    except (ValueError, IndexError):
+        print("\n>> Selección inválida.")
+        return
+
+    origen = Path(codigo_mascota) / "documentos" / doc["nombre_archivo"]
+    destino = Path(input("Ruta destino donde copiarlo: ").strip())
+    shutil.copy2(origen, destino)
+    print(f"\n>> Documento copiado a '{destino}' sin alterar el original.")
